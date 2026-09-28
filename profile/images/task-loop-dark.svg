@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 340" width="1200" height="340" role="img" aria-labelledby="t d">
+<title id="t">How a Scaffolde task runs</title>
+<desc id="d">Five steps: the goal is kept word for word; done is written as falsifiable claims with checks; agents build across AI tools; a finish-time check on Claude Code blocks unproven deploy, user-flow and appearance claims; evidence and learnings return to the shared source for reuse.</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#71CAFF"/></marker></defs>
+<rect width="1200" height="340" rx="20" fill="#08172B"/>
+<rect x="42" y="48" width="196" height="196" rx="16" fill="#0F2442" stroke="#23426E" stroke-width="1.5"/>
+<circle cx="76" cy="84" r="16" fill="#13305A"/>
+<text x="76" y="90" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#71CAFF">1</text>
+<text x="60" y="132" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#EEF5FF">Goal</text>
+<text x="60" y="160" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#ACBED6">Your ask, kept</text>
+<text x="60" y="182" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#ACBED6">word for word</text>
+<text x="60" y="274" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#71CAFF">ISA</text>
+<line x1="244" y1="146.0" x2="272" y2="146.0" stroke="#71CAFF" stroke-width="2.5" marker-end="url(#a)"/>
+<rect x="278" y="48" width="196" height="196" rx="16" fill="#0F2442" stroke="#23426E" stroke-width="1.5"/>
+<circle cx="312" cy="84" r="16" fill="#13305A"/>
+<text x="312" y="90" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#71CAFF">2</text>
+<text x="296" y="132" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#EEF5FF">Done, in writing</text>
+<text x="296" y="160" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#ACBED6">Claims that can be</text>
+<text x="296" y="182" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#ACBED6">proven false, each</text>
+<text x="296" y="204" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#ACBED6">with its check</text>
+<text x="296" y="274" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#71CAFF">ISA claims</text>
+<line x1="480" y1="146.0" x2="508" y2="146.0" stroke="#71CAFF" stroke-width="2.5" marker-end="url(#a)"/>
+<rect x="514" y="48" width="196" height="196" rx="16" fill="#0F2442" stroke="#23426E" stroke-width="1.5"/>
+<circle cx="548" cy="84" r="16" fill="#13305A"/>
+<text x="548" y="90" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#71CAFF">3</text>
+<text x="532" y="132" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#EEF5FF">Agents build</text>
+<text x="532" y="160" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#ACBED6">Skills and agents</text>
+<text x="532" y="182" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#ACBED6">work across the AI</text>
+<text x="532" y="204" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#ACBED6">tools you use</text>
+<text x="532" y="274" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#71CAFF">any surface</text>
+<line x1="716" y1="146.0" x2="744" y2="146.0" stroke="#71CAFF" stroke-width="2.5" marker-end="url(#a)"/>
+<rect x="750" y="48" width="196" height="196" rx="16" fill="#1D4ED8" stroke="#1D4ED8" stroke-width="1.5"/>
+<circle cx="784" cy="84" r="16" fill="#FFFFFF"/>
+<text x="784" y="90" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#1D4ED8">4</text>
+<text x="768" y="132" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#FFFFFF">Finish-time check</text>
+<text x="768" y="160" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#CFE0FF">Unproven deploy, flow</text>
+<text x="768" y="182" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#CFE0FF">and appearance claims</text>
+<text x="768" y="204" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#CFE0FF">are blocked</text>
+<text x="768" y="274" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#71CAFF">Claude Code</text>
+<line x1="952" y1="146.0" x2="980" y2="146.0" stroke="#71CAFF" stroke-width="2.5" marker-end="url(#a)"/>
+<rect x="986" y="48" width="196" height="196" rx="16" fill="#0F2442" stroke="#23426E" stroke-width="1.5"/>
+<circle cx="1020" cy="84" r="16" fill="#13305A"/>
+<text x="1020" y="90" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#71CAFF">5</text>
+<text x="1004" y="132" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#EEF5FF">Evidence + memory</text>
+<text x="1004" y="160" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#ACBED6">Proof and lessons</text>
+<text x="1004" y="182" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#ACBED6">flow back to the</text>
+<text x="1004" y="204" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#ACBED6">shared source</text>
+<text x="1004" y="274" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#71CAFF">reuse</text>
+<path d="M1084.0 284 L1084.0 304 L140.0 304 L140.0 286" fill="none" stroke="#71CAFF" stroke-width="2" stroke-dasharray="6 6" marker-end="url(#a)" opacity="0.8"/>
+<rect x="430.0" y="290" width="340" height="28" rx="14" fill="#08172B"/>
+<text x="600.0" y="309" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#ACBED6">every improvement returns to the source</text>
+<text x="42" y="30" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" letter-spacing="1.5" fill="#71CAFF">HOW A TASK RUNS</text>
+</svg>
