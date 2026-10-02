@@ -146,12 +146,54 @@ def main():
         if "" in ids:
             raise ValueError(f"SVG IDs must not be empty: {svg.relative_to(repo)}")
 
-        def fragment(value):
-            value = value.strip()
+        def fragment(value, trim=True):
+            if trim:
+                value = value.strip("".join(chr(c) for c in range(33)))
             if not value.startswith("#") or len(value) == 1 or value[1:] not in ids:
                 raise ValueError(f"SVG resources must reference existing in-document IDs: {svg.relative_to(repo)}: {value}")
 
+        def uncomment(value):
+            """Remove CSS comments outside strings/URL tokens in one forward pass."""
+            parts = []
+            position = 0
+            while position < len(value):
+                if value.startswith("/*", position):
+                    end = value.find("*/", position + 2)
+                    if end == -1:
+                        raise ValueError(f"Unclosed SVG CSS comment: {svg.relative_to(repo)}")
+                    # CSS comments separate tokens; never concatenate identifiers.
+                    parts.append(" ")
+                    position = end + 2
+                elif value[position] in {"'", '"'}:
+                    end = value.find(value[position], position + 1)
+                    if end == -1:
+                        raise ValueError(f"Unmatched SVG CSS string quote: {svg.relative_to(repo)}")
+                    parts.append(value[position:end + 1])
+                    position = end + 1
+                elif value[position:position + 4].lower() == "url(":
+                    end = position + 4
+                    quote = None
+                    while end < len(value):
+                        char = value[end]
+                        if quote:
+                            if char == quote:
+                                quote = None
+                        elif char in {"'", '"'}:
+                            quote = char
+                        elif char == ")":
+                            break
+                        end += 1
+                    if end == len(value):
+                        raise ValueError(f"Unclosed SVG CSS url() resource: {svg.relative_to(repo)}")
+                    parts.append(value[position:end + 1])
+                    position = end + 1
+                else:
+                    parts.append(value[position])
+                    position += 1
+            return "".join(parts)
+
         def css(value):
+            value = uncomment(value)
             if "\\" in value or re.search(r"@import\b", value, re.I):
                 raise ValueError(f"SVG CSS imports/escapes are unsupported: {svg.relative_to(repo)}")
             if re.search(r"(?:^|[^\w-])(?:-webkit-)?(?:image|image-set|cross-fade)\s*\(", value, re.I):
@@ -160,7 +202,7 @@ def main():
             url_start = re.compile(r"url\(", re.I)
             while match := url_start.search(value, position):
                 start = match.end()
-                while start < len(value) and value[start].isspace():
+                while start < len(value) and value[start] in " \t\n\r\f":
                     start += 1
                 if start < len(value) and value[start] in {"'", '"'}:
                     quote = value[start]
@@ -169,7 +211,7 @@ def main():
                         raise ValueError(f"Unmatched SVG CSS URL quote: {svg.relative_to(repo)}")
                     resource = value[start + 1:quote_end]
                     end = quote_end + 1
-                    while end < len(value) and value[end].isspace():
+                    while end < len(value) and value[end] in " \t\n\r\f":
                         end += 1
                     if end == len(value) or value[end] != ")":
                         raise ValueError(f"Unclosed SVG CSS url() resource: {svg.relative_to(repo)}")
@@ -177,11 +219,17 @@ def main():
                     end = value.find(")", start)
                     if end == -1:
                         raise ValueError(f"Unclosed SVG CSS url() resource: {svg.relative_to(repo)}")
-                    resource = value[start:end].strip()
-                fragment(resource)
+                    resource = value[start:end].strip(" \t\n\r\f")
+                fragment(resource, trim=False)
                 position = end + 1
 
 
+        # SVG presentation attributes with resource-valued CSS syntax:
+        # https://www.w3.org/TR/SVG2/styling.html#PresentationAttributes
+        resource_attributes = {
+            "fill", "stroke", "filter", "clip-path", "mask", "marker",
+            "marker-start", "marker-mid", "marker-end", "cursor", "color-profile",
+        }
         for node in root.iter():
             tag = node.tag.rsplit("}", 1)[-1]
             if tag == "foreignObject":
@@ -198,7 +246,7 @@ def main():
                     raise ValueError(f"SVG executable navigation is unsupported: {svg.relative_to(repo)}")
                 if local_name in {"href", "src"} and tag != "a":
                     fragment(value)
-                if local_name == "style" or re.search(r"(?:url|(?:-webkit-)?image(?:-set)?|cross-fade)\s*\(", value, re.I):
+                if local_name == "style" or local_name in resource_attributes or re.search(r"(?:url|(?:-webkit-)?image(?:-set)?|cross-fade)\s*\(", value, re.I):
                     css(value)
             if tag == "style":
                 css("".join(node.itertext()))
