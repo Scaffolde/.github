@@ -1,0 +1,11 @@
+# Reviewed PyPI release metadata; binary-only CPython 3.14 on Ubuntu x86_64.
+# https://pypi.org/pypi/markdown-it-py/4.2.0/json
+markdown-it-py==4.2.0 --hash=sha256:9f7ebbcd14fe59494226453aed97c1070d83f8d24b6fc3a3bcf9a38092641c4a
+# markdown-it-py's only base dependency (mdurl~=0.1).
+# https://pypi.org/pypi/mdurl/0.1.2/json
+mdurl==0.1.2 --hash=sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8
+# Pillow has no base dependencies; both compatible non-free-threaded Linux wheels.
+# https://pypi.org/pypi/pillow/12.1.0/json
+Pillow==12.1.0 \
+    --hash=sha256:d0a7735df32ccbcc98b98a1ac785cc4b19b580be1bdf0aeb5c03223220ea09d5 \
+    --hash=sha256:15c794d74303828eaa957ff8070846d0efe8c630901a1c753fdc63850e19ecd9

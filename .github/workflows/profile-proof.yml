@@ -1,0 +1,41 @@
+name: Profile proof
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    name: Proof verdict
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Prepare locked proof dependencies
+        run: |
+          python -m pip install --require-hashes --only-binary=:all: -r .github/scripts/profile-proof-requirements.txt
+      - name: Validate profile assets and SVGs
+        run: python3 .github/scripts/profile-proof.py
+      - name: Check changed-content whitespace
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          if [ -n "$BASE_SHA" ]; then
+            git diff --check "$BASE_SHA"...HEAD
+          else
+            before="$PUSH_BEFORE"
+            if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ]; then
+              before=$(git hash-object -t tree /dev/null)
+            fi
+            git diff --check "$before" HEAD
+          fi
