@@ -11,6 +11,45 @@ from markdown_it import MarkdownIt
 from PIL import Image, ImageSequence
 
 
+def srcset_candidates(value):
+    """Collect URL-first tokens using HTML's srcset whitespace/comma rules.
+
+    https://html.spec.whatwg.org/multipage/images.html#parse-a-srcset-attribute
+    Descriptor validation below deliberately excludes unsupported descriptor forms.
+    """
+    whitespace = " \t\n\r\f"
+    position = 0
+    candidates = []
+    while position < len(value):
+        while position < len(value) and value[position] in whitespace + ",":
+            position += 1
+        start = position
+        while position < len(value) and value[position] not in whitespace:
+            position += 1
+        url = value[start:position]
+        if not url:
+            break
+        if url.endswith(","):
+            candidates.append([url.rstrip(",")])
+            continue
+        start = position
+        while position < len(value) and value[position] != ",":
+            position += 1
+        descriptors = re.findall(r"[^ \t\n\r\f]+", value[start:position])
+        candidates.append([url, *descriptors])
+        if position < len(value):
+            position += 1
+    return candidates
+
+
+def reject_symlinks(path, repo):
+    for node in (path, *path.parents):
+        if not node.is_relative_to(repo):
+            break
+        if node.is_symlink():
+            raise ValueError(f"GitHub image proof does not support symlink paths: {node.relative_to(repo)}")
+
+
 class Images(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -31,7 +70,7 @@ class Images(HTMLParser):
         if attrs.get("src"):
             self.references.append(attrs["src"])
         if attrs.get("srcset"):
-            candidates = [candidate.split() for candidate in attrs["srcset"].split(",") if candidate.strip()]
+            candidates = srcset_candidates(attrs["srcset"])
             if not candidates:
                 raise ValueError("Image srcset must contain a usable candidate")
             descriptors = set()
@@ -61,6 +100,7 @@ def main():
     repo = Path(__file__).resolve().parents[2]
     profile = repo / "profile"
     parser = Images()
+    reject_symlinks(profile / "README.md", repo)
     readme = (profile / "README.md").read_text()
     parser.feed(MarkdownIt("commonmark", {"html": True}).render(readme))
     if not parser.image_count or not parser.references:
@@ -72,7 +112,12 @@ def main():
         url = urlsplit(reference)
         if url.scheme or url.netloc:
             raise ValueError(f"Profile image must be a local asset: {reference}")
-        asset = (profile / unquote(url.path)).resolve()
+        decoded_path = unquote(url.path)
+        if decoded_path.startswith("/") or Path(decoded_path).is_absolute():
+            raise ValueError(f"Profile image URL must be profile-relative: {reference}")
+        raw_asset = profile / decoded_path
+        reject_symlinks(raw_asset, repo)
+        asset = raw_asset.resolve()
         if not asset.is_relative_to(profile.resolve()):
             raise ValueError(f"Image escapes profile directory: {reference}")
         if not asset.is_file() or asset.stat().st_size == 0:
@@ -81,6 +126,7 @@ def main():
     svgs = {asset for asset in assets if asset.suffix.lower() == ".svg"}
     svgs.update((profile / "images").rglob("*.svg"))
     for svg in svgs:
+        reject_symlinks(svg, repo)
         root = ET.parse(svg).getroot()
         if root.tag != "{http://www.w3.org/2000/svg}svg":
             raise ValueError(f"Invalid SVG root: {svg.relative_to(repo)}")
@@ -99,6 +145,8 @@ def main():
 
         for node in root.iter():
             tag = node.tag.rsplit("}", 1)[-1]
+            if tag == "foreignObject":
+                raise ValueError(f"Self-contained vector SVGs do not support foreignObject: {svg.relative_to(repo)}")
             for name, value in node.attrib.items():
                 local_name = name.rsplit("}", 1)[-1]
                 if local_name in {"href", "src"} and tag != "a":
@@ -108,8 +156,11 @@ def main():
             if tag == "style":
                 css("".join(node.itertext()))
     rasters = assets - svgs
+    web_formats = {".png": "PNG", ".jpg": "JPEG", ".jpeg": "JPEG", ".gif": "GIF", ".webp": "WEBP", ".avif": "AVIF"}
     for raster in rasters:
         with Image.open(raster) as image:
+            if web_formats.get(raster.suffix.lower()) != image.format:
+                raise ValueError(f"Raster format must match a supported web suffix: {raster.relative_to(repo)}")
             image.verify()
         with Image.open(raster) as image:
             for frame in ImageSequence.Iterator(image):
