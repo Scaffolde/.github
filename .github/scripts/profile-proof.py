@@ -263,7 +263,7 @@ def main():
             tag = node.tag.rsplit("}", 1)[-1]
             if tag == "foreignObject":
                 raise ValueError(f"Self-contained vector SVGs do not support foreignObject: {svg.relative_to(repo)}")
-            if tag in {"script", "set", "animate", "animateMotion", "animateTransform", "discard"}:
+            if tag in {"script", "set", "animate", "animateColor", "animateMotion", "animateTransform", "discard"}:
                 raise ValueError(f"Self-contained vector SVGs do not support dynamic markup: {svg.relative_to(repo)}: {tag}")
             for name, value in node.attrib.items():
                 if name == "{http://www.w3.org/XML/1998/namespace}base":
