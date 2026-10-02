@@ -127,7 +127,10 @@ def main():
     svgs.update((profile / "images").rglob("*.svg"))
     for svg in svgs:
         reject_symlinks(svg, repo)
-        root = ET.parse(svg).getroot()
+        tree = ET.iterparse(svg, events=("pi",))
+        for _, instruction in tree:
+            raise ValueError(f"Self-contained vector SVGs do not support processing instructions: {svg.relative_to(repo)}")
+        root = tree.root
         if root.tag != "{http://www.w3.org/2000/svg}svg":
             raise ValueError(f"Invalid SVG root: {svg.relative_to(repo)}")
         ids = {node.attrib["id"] for node in root.iter() if "id" in node.attrib}
