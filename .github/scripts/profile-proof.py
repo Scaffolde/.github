@@ -2,9 +2,11 @@
 
 from html.parser import HTMLParser
 from pathlib import Path
-import re
 from urllib.parse import unquote, urlsplit
 import xml.etree.ElementTree as ET
+
+from markdown_it import MarkdownIt
+from PIL import Image, ImageSequence
 
 
 class Images(HTMLParser):
@@ -36,13 +38,13 @@ def main():
     profile = repo / "profile"
     parser = Images()
     readme = (profile / "README.md").read_text()
-    if any(len(match.group(1)) % 2 == 0 for match in re.finditer(r"(\\*)!\[", readme)):
-        raise ValueError("Profile images must use HTML img/source tags; Markdown images are unsupported")
-    parser.feed(readme)
+    parser.feed(MarkdownIt("commonmark", {"html": True}).render(readme))
     if not parser.references:
         raise ValueError("Profile must reference at least one image")
     assets = set()
     for reference in parser.references:
+        if "\\" in reference or "\\" in unquote(reference):
+            raise ValueError(f"Backslashes are unsupported in image URLs: {reference}")
         url = urlsplit(reference)
         if url.scheme or url.netloc:
             raise ValueError(f"Profile image must be a local asset: {reference}")
@@ -57,7 +59,14 @@ def main():
     for svg in svgs:
         if ET.parse(svg).getroot().tag != "{http://www.w3.org/2000/svg}svg":
             raise ValueError(f"Invalid SVG root: {svg.relative_to(repo)}")
-    print(f"Profile proof: {len(assets)} referenced assets; {len(svgs)} valid SVGs")
+    rasters = assets - svgs
+    for raster in rasters:
+        with Image.open(raster) as image:
+            image.verify()
+        with Image.open(raster) as image:
+            for frame in ImageSequence.Iterator(image):
+                frame.load()
+    print(f"Profile proof: {len(assets)} referenced assets; {len(svgs)} valid SVGs; {len(rasters)} decoded rasters")
 
 
 if __name__ == "__main__":
