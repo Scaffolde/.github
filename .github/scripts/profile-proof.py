@@ -1,6 +1,7 @@
 """Validate the organization profile's local image contract."""
 
 from html.parser import HTMLParser
+import math
 from pathlib import Path
 import re
 from urllib.parse import unquote, urlsplit
@@ -30,11 +31,30 @@ class Images(HTMLParser):
         if attrs.get("src"):
             self.references.append(attrs["src"])
         if attrs.get("srcset"):
-            self.references.extend(
-                candidate.strip().split()[0]
-                for candidate in attrs["srcset"].split(",")
-                if candidate.strip()
-            )
+            candidates = [candidate.split() for candidate in attrs["srcset"].split(",") if candidate.strip()]
+            if not candidates:
+                raise ValueError("Image srcset must contain a usable candidate")
+            descriptors = set()
+            kinds = set()
+            for candidate in candidates:
+                if len(candidate) > 2:
+                    raise ValueError("Image srcset candidate has multiple descriptors")
+                kind, value = "x", 1.0
+                if len(candidate) == 2:
+                    descriptor = candidate[1]
+                    if re.fullmatch(r"[0-9]+w", descriptor):
+                        kind, value = "w", int(descriptor[:-1])
+                    elif re.fullmatch(r"(?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?x", descriptor):
+                        value = float(descriptor[:-1])
+                    else:
+                        raise ValueError(f"Malformed image srcset descriptor: {descriptor}")
+                if value <= 0 or not math.isfinite(value) or (kind, value) in descriptors:
+                    raise ValueError("Image srcset descriptors must be positive, finite, and unique")
+                kinds.add(kind)
+                descriptors.add((kind, value))
+                self.references.append(candidate[0])
+            if len(kinds) > 1:
+                raise ValueError("Image srcset cannot mix width and density descriptors")
 
 
 def main():
