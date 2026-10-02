@@ -151,6 +151,8 @@ def main():
             if tag == "foreignObject":
                 raise ValueError(f"Self-contained vector SVGs do not support foreignObject: {svg.relative_to(repo)}")
             for name, value in node.attrib.items():
+                if name == "{http://www.w3.org/XML/1998/namespace}base":
+                    raise ValueError(f"Self-contained vector SVGs do not support xml:base: {svg.relative_to(repo)}")
                 local_name = name.rsplit("}", 1)[-1]
                 if local_name in {"href", "src"} and tag != "a":
                     fragment(value)
