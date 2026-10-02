@@ -2,6 +2,7 @@
 
 from html.parser import HTMLParser
 from pathlib import Path
+import re
 from urllib.parse import unquote, urlsplit
 import xml.etree.ElementTree as ET
 
@@ -29,7 +30,10 @@ def main():
     repo = Path(__file__).resolve().parents[2]
     profile = repo / "profile"
     parser = Images()
-    parser.feed((profile / "README.md").read_text())
+    readme = (profile / "README.md").read_text()
+    if re.search(r"(?<!\\)!\[", readme):
+        raise ValueError("Profile images must use HTML img/source tags; Markdown images are unsupported")
+    parser.feed(readme)
     if not parser.references:
         raise ValueError("Profile must reference at least one image")
     assets = set()

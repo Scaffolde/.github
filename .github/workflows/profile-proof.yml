@@ -22,9 +22,14 @@ jobs:
       - name: Check changed-content whitespace
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
         run: |
           if [ -n "$BASE_SHA" ]; then
             git diff --check "$BASE_SHA"...HEAD
           else
-            git show --format= --check HEAD
+            before="$PUSH_BEFORE"
+            if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ]; then
+              before=$(git hash-object -t tree /dev/null)
+            fi
+            git diff --check "$before" HEAD
           fi
