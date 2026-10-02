@@ -1,4 +1,9 @@
-"""Validate the organization profile's local image contract."""
+"""Check profile resource/format structure, not universal browser appearance.
+
+SVGs must be self-contained static vectors: no foreignObject, processing
+instructions, xml:base, scripts, SMIL animation, or CSS image resource functions.
+Raster animation remains supported and every frame is decoded.
+"""
 
 from html.parser import HTMLParser
 import math
@@ -134,15 +139,19 @@ def main():
         if root.tag != "{http://www.w3.org/2000/svg}svg":
             raise ValueError(f"Invalid SVG root: {svg.relative_to(repo)}")
         ids = {node.attrib["id"] for node in root.iter() if "id" in node.attrib}
+        if "" in ids:
+            raise ValueError(f"SVG IDs must not be empty: {svg.relative_to(repo)}")
 
         def fragment(value):
             value = value.strip()
-            if not value.startswith("#") or value[1:] not in ids:
+            if not value.startswith("#") or len(value) == 1 or value[1:] not in ids:
                 raise ValueError(f"SVG resources must reference existing in-document IDs: {svg.relative_to(repo)}: {value}")
 
         def css(value):
             if "\\" in value or re.search(r"@import\b", value, re.I):
                 raise ValueError(f"SVG CSS imports/escapes are unsupported: {svg.relative_to(repo)}")
+            if re.search(r"(?:^|[^\w-])(?:-webkit-)?(?:image|image-set|cross-fade)\s*\(", value, re.I):
+                raise ValueError(f"Static vector SVGs do not support CSS image resource functions: {svg.relative_to(repo)}")
             for match in re.finditer(r"url\(\s*(['\"]?)(.*?)\1\s*\)", value, re.I | re.S):
                 fragment(match.group(2))
 
@@ -150,13 +159,15 @@ def main():
             tag = node.tag.rsplit("}", 1)[-1]
             if tag == "foreignObject":
                 raise ValueError(f"Self-contained vector SVGs do not support foreignObject: {svg.relative_to(repo)}")
+            if tag in {"script", "set", "animate", "animateMotion", "animateTransform", "discard"}:
+                raise ValueError(f"Static vector SVGs do not support dynamic markup: {svg.relative_to(repo)}: {tag}")
             for name, value in node.attrib.items():
                 if name == "{http://www.w3.org/XML/1998/namespace}base":
                     raise ValueError(f"Self-contained vector SVGs do not support xml:base: {svg.relative_to(repo)}")
                 local_name = name.rsplit("}", 1)[-1]
                 if local_name in {"href", "src"} and tag != "a":
                     fragment(value)
-                if local_name == "style" or "url(" in value.lower():
+                if local_name == "style" or re.search(r"(?:url|(?:-webkit-)?image(?:-set)?|cross-fade)\s*\(", value, re.I):
                     css(value)
             if tag == "style":
                 css("".join(node.itertext()))
