@@ -15,7 +15,12 @@ class Images(HTMLParser):
     def handle_starttag(self, tag, attrs):
         if tag not in {"img", "source"}:
             return
+        url_attrs = [name for name, _ in attrs if name in {"src", "srcset"}]
+        if len(url_attrs) != len(set(url_attrs)):
+            raise ValueError(f"Duplicate image URL attributes on {tag}")
         attrs = dict(attrs)
+        if not url_attrs or any(not attrs[name] or not attrs[name].strip() for name in url_attrs):
+            raise ValueError(f"Missing or empty image URL attributes on {tag}")
         if attrs.get("src"):
             self.references.append(attrs["src"])
         if attrs.get("srcset"):
@@ -31,7 +36,7 @@ def main():
     profile = repo / "profile"
     parser = Images()
     readme = (profile / "README.md").read_text()
-    if re.search(r"(?<!\\)!\[", readme):
+    if any(len(match.group(1)) % 2 == 0 for match in re.finditer(r"(\\*)!\[", readme)):
         raise ValueError("Profile images must use HTML img/source tags; Markdown images are unsupported")
     parser.feed(readme)
     if not parser.references:
