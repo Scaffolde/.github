@@ -18,6 +18,13 @@ from markdown_it import MarkdownIt
 from PIL import Image, ImageSequence
 
 
+def decode_url(value):
+    """Accept well-formed percent escapes and strict UTF-8 bytes."""
+    if re.search(r"%(?![0-9A-Fa-f]{2})", value):
+        raise ValueError(f"URL contains a malformed percent escape: {value}")
+    return unquote(value, errors="strict")
+
+
 def srcset_candidates(value):
     """Collect URL-first tokens using HTML's srcset whitespace/comma rules.
 
@@ -114,14 +121,12 @@ def main():
         raise ValueError("Profile must render at least one img element")
     assets = set()
     for reference in parser.references:
-        if re.search(r"%(?![0-9A-Fa-f]{2})", reference):
-            raise ValueError(f"Image URL contains a malformed percent escape: {reference}")
-        if "\\" in reference or "\\" in unquote(reference, errors="strict"):
+        if "\\" in reference or "\\" in decode_url(reference):
             raise ValueError(f"Backslashes are unsupported in image URLs: {reference}")
         url = urlsplit(reference)
         if url.scheme or url.netloc:
             raise ValueError(f"Profile image must be a local asset: {reference}")
-        decoded_path = unquote(url.path, errors="strict")
+        decoded_path = decode_url(url.path)
         if decoded_path.startswith("/") or Path(decoded_path).is_absolute():
             raise ValueError(f"Profile image URL must be profile-relative: {reference}")
         raw_asset = profile / decoded_path
@@ -142,14 +147,17 @@ def main():
         root = tree.root
         if root.tag != "{http://www.w3.org/2000/svg}svg":
             raise ValueError(f"Invalid SVG root: {svg.relative_to(repo)}")
-        ids = {node.attrib["id"] for node in root.iter() if "id" in node.attrib}
+        id_values = [node.attrib["id"] for node in root.iter() if "id" in node.attrib]
+        ids = set(id_values)
+        if len(ids) != len(id_values):
+            raise ValueError(f"SVG IDs must be unique: {svg.relative_to(repo)}")
         if "" in ids:
             raise ValueError(f"SVG IDs must not be empty: {svg.relative_to(repo)}")
 
         def fragment(value, trim=True):
             if trim:
                 value = value.strip("".join(chr(c) for c in range(33)))
-            if not value.startswith("#") or len(value) == 1 or value[1:] not in ids:
+            if not value.startswith("#") or len(value) == 1 or decode_url(value[1:]) not in ids:
                 raise ValueError(f"SVG resources must reference existing in-document IDs: {svg.relative_to(repo)}: {value}")
 
         def uncomment(value):
@@ -173,15 +181,27 @@ def main():
                 elif value[position:position + 4].lower() == "url(" and (position == 0 or not (value[position - 1].isalnum() or value[position - 1] in "_-")):
                     end = position + 4
                     quote = None
+                    quoted = False
+                    token_started = False
                     while end < len(value):
                         char = value[end]
                         if quote:
                             if char == quote:
                                 quote = None
+                        elif value.startswith("/*", end) and (quoted or not token_started):
+                            comment_end = value.find("*/", end + 2)
+                            if comment_end == -1:
+                                raise ValueError(f"Unclosed SVG CSS comment: {svg.relative_to(repo)}")
+                            end = comment_end + 2
+                            continue
                         elif char in {"'", '"'}:
                             quote = char
+                            quoted = True
+                            token_started = True
                         elif char == ")":
                             break
+                        elif char not in " \t\n\r\f":
+                            token_started = True
                         end += 1
                     if end == len(value):
                         raise ValueError(f"Unclosed SVG CSS url() resource: {svg.relative_to(repo)}")
@@ -198,21 +218,30 @@ def main():
                 raise ValueError(f"SVG CSS imports/escapes are unsupported: {svg.relative_to(repo)}")
             if re.search(r"(?:^|[^\w-])(?:-webkit-)?(?:image|image-set|cross-fade|src)\s*\(", value, re.I):
                 raise ValueError(f"Self-contained vector SVGs do not support CSS image/src resource functions: {svg.relative_to(repo)}")
+            def skip_gap(position):
+                while position < len(value):
+                    if value[position] in " \t\n\r\f":
+                        position += 1
+                    elif value.startswith("/*", position):
+                        end = value.find("*/", position + 2)
+                        if end == -1:
+                            raise ValueError(f"Unclosed SVG CSS comment: {svg.relative_to(repo)}")
+                        position = end + 2
+                    else:
+                        break
+                return position
+
             position = 0
             url_start = re.compile(r"(?<![\w-])url\(", re.I)
             while match := url_start.search(value, position):
-                start = match.end()
-                while start < len(value) and value[start] in " \t\n\r\f":
-                    start += 1
+                start = skip_gap(match.end())
                 if start < len(value) and value[start] in {"'", '"'}:
                     quote = value[start]
                     quote_end = value.find(quote, start + 1)
                     if quote_end == -1:
                         raise ValueError(f"Unmatched SVG CSS URL quote: {svg.relative_to(repo)}")
                     resource = value[start + 1:quote_end]
-                    end = quote_end + 1
-                    while end < len(value) and value[end] in " \t\n\r\f":
-                        end += 1
+                    end = skip_gap(quote_end + 1)
                     if end == len(value) or value[end] != ")":
                         raise ValueError(f"Unclosed SVG CSS url() resource: {svg.relative_to(repo)}")
                 else:
