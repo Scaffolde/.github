@@ -1,7 +1,7 @@
 """Check profile resource/format structure, not universal browser appearance.
 
 SVGs must be self-contained vectors: no foreignObject, processing
-instructions, xml:base, scripts/event handlers, executable navigation, SMIL
+instructions, xml:base, scripts/event handlers, javascript: navigation, SMIL
 animation, or CSS image resource functions.
 Self-contained CSS animation is allowed. Raster animation remains supported
 and every frame is decoded.
@@ -153,7 +153,7 @@ def main():
                 raise ValueError(f"SVG resources must reference existing in-document IDs: {svg.relative_to(repo)}: {value}")
 
         def uncomment(value):
-            """Remove CSS comments outside strings/URL tokens in one forward pass."""
+            """Mask CSS comments and ordinary strings; preserve URL tokens."""
             parts = []
             position = 0
             while position < len(value):
@@ -168,9 +168,9 @@ def main():
                     end = value.find(value[position], position + 1)
                     if end == -1:
                         raise ValueError(f"Unmatched SVG CSS string quote: {svg.relative_to(repo)}")
-                    parts.append(value[position:end + 1])
+                    parts.append(" ")
                     position = end + 1
-                elif value[position:position + 4].lower() == "url(":
+                elif value[position:position + 4].lower() == "url(" and (position == 0 or not (value[position - 1].isalnum() or value[position - 1] in "_-")):
                     end = position + 4
                     quote = None
                     while end < len(value):
@@ -196,10 +196,10 @@ def main():
             value = uncomment(value)
             if "\\" in value or re.search(r"@import\b", value, re.I):
                 raise ValueError(f"SVG CSS imports/escapes are unsupported: {svg.relative_to(repo)}")
-            if re.search(r"(?:^|[^\w-])(?:-webkit-)?(?:image|image-set|cross-fade)\s*\(", value, re.I):
-                raise ValueError(f"Self-contained vector SVGs do not support CSS image resource functions: {svg.relative_to(repo)}")
+            if re.search(r"(?:^|[^\w-])(?:-webkit-)?(?:image|image-set|cross-fade|src)\s*\(", value, re.I):
+                raise ValueError(f"Self-contained vector SVGs do not support CSS image/src resource functions: {svg.relative_to(repo)}")
             position = 0
-            url_start = re.compile(r"url\(", re.I)
+            url_start = re.compile(r"(?<![\w-])url\(", re.I)
             while match := url_start.search(value, position):
                 start = match.end()
                 while start < len(value) and value[start] in " \t\n\r\f":
@@ -243,10 +243,10 @@ def main():
                 if local_name.lower().startswith("on"):
                     raise ValueError(f"SVG event-handler scripting is unsupported: {svg.relative_to(repo)}: {local_name}")
                 if local_name == "href" and urlsplit(value).scheme.lower() == "javascript":
-                    raise ValueError(f"SVG executable navigation is unsupported: {svg.relative_to(repo)}")
+                    raise ValueError(f"SVG javascript: navigation is unsupported: {svg.relative_to(repo)}")
                 if local_name in {"href", "src"} and tag != "a":
                     fragment(value)
-                if local_name == "style" or local_name in resource_attributes or re.search(r"(?:url|(?:-webkit-)?image(?:-set)?|cross-fade)\s*\(", value, re.I):
+                if local_name == "style" or local_name in resource_attributes or re.search(r"(?:url|src|(?:-webkit-)?image(?:-set)?|cross-fade)\s*\(", value, re.I):
                     css(value)
             if tag == "style":
                 css("".join(node.itertext()))
