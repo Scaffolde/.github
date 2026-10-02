@@ -1,7 +1,8 @@
 """Check profile resource/format structure, not universal browser appearance.
 
 SVGs must be self-contained vectors: no foreignObject, processing
-instructions, xml:base, scripts, SMIL animation, or CSS image resource functions.
+instructions, xml:base, scripts/event handlers, executable navigation, SMIL
+animation, or CSS image resource functions.
 Self-contained CSS animation is allowed. Raster animation remains supported
 and every frame is decoded.
 """
@@ -191,6 +192,10 @@ def main():
                 if name == "{http://www.w3.org/XML/1998/namespace}base":
                     raise ValueError(f"Self-contained vector SVGs do not support xml:base: {svg.relative_to(repo)}")
                 local_name = name.rsplit("}", 1)[-1]
+                if local_name.lower().startswith("on"):
+                    raise ValueError(f"SVG event-handler scripting is unsupported: {svg.relative_to(repo)}: {local_name}")
+                if local_name == "href" and urlsplit(value).scheme.lower() == "javascript":
+                    raise ValueError(f"SVG executable navigation is unsupported: {svg.relative_to(repo)}")
                 if local_name in {"href", "src"} and tag != "a":
                     fragment(value)
                 if local_name == "style" or re.search(r"(?:url|(?:-webkit-)?image(?:-set)?|cross-fade)\s*\(", value, re.I):
