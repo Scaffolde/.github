@@ -82,7 +82,7 @@ with Hermes, OpenClaw and Prime Agent connected, and every change shown as a liv
   <tr>
     <td align="center"><strong>187</strong><br /><sub>skills</sub></td>
     <td align="center"><strong>243</strong><br /><sub>workflows</sub></td>
-    <td align="center"><strong>38</strong><br /><sub>agents</sub></td>
+    <td align="center"><strong>39</strong><br /><sub>agents</sub></td>
     <td align="center"><strong>13</strong><br /><sub>AI tool surfaces</sub></td>
     <td align="center"><strong>13,757</strong><br /><sub>test cases in the v3.0 release gate,<br />0 failures</sub></td>
   </tr>
