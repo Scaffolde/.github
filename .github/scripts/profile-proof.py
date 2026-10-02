@@ -47,7 +47,8 @@ def main():
         if not asset.is_file() or asset.stat().st_size == 0:
             raise ValueError(f"Missing or empty profile asset: {reference}")
         assets.add(asset)
-    svgs = list((profile / "images").glob("*.svg"))
+    svgs = {asset for asset in assets if asset.suffix.lower() == ".svg"}
+    svgs.update((profile / "images").rglob("*.svg"))
     for svg in svgs:
         if ET.parse(svg).getroot().tag != "{http://www.w3.org/2000/svg}svg":
             raise ValueError(f"Invalid SVG root: {svg.relative_to(repo)}")
