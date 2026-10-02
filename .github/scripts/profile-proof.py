@@ -1,8 +1,9 @@
 """Check profile resource/format structure, not universal browser appearance.
 
-SVGs must be self-contained static vectors: no foreignObject, processing
+SVGs must be self-contained vectors: no foreignObject, processing
 instructions, xml:base, scripts, SMIL animation, or CSS image resource functions.
-Raster animation remains supported and every frame is decoded.
+Self-contained CSS animation is allowed. Raster animation remains supported
+and every frame is decoded.
 """
 
 from html.parser import HTMLParser
@@ -112,12 +113,12 @@ def main():
         raise ValueError("Profile must render at least one img element")
     assets = set()
     for reference in parser.references:
-        if "\\" in reference or "\\" in unquote(reference):
+        if "\\" in reference or "\\" in unquote(reference, errors="strict"):
             raise ValueError(f"Backslashes are unsupported in image URLs: {reference}")
         url = urlsplit(reference)
         if url.scheme or url.netloc:
             raise ValueError(f"Profile image must be a local asset: {reference}")
-        decoded_path = unquote(url.path)
+        decoded_path = unquote(url.path, errors="strict")
         if decoded_path.startswith("/") or Path(decoded_path).is_absolute():
             raise ValueError(f"Profile image URL must be profile-relative: {reference}")
         raw_asset = profile / decoded_path
@@ -151,16 +152,39 @@ def main():
             if "\\" in value or re.search(r"@import\b", value, re.I):
                 raise ValueError(f"SVG CSS imports/escapes are unsupported: {svg.relative_to(repo)}")
             if re.search(r"(?:^|[^\w-])(?:-webkit-)?(?:image|image-set|cross-fade)\s*\(", value, re.I):
-                raise ValueError(f"Static vector SVGs do not support CSS image resource functions: {svg.relative_to(repo)}")
-            for match in re.finditer(r"url\(\s*(['\"]?)(.*?)\1\s*\)", value, re.I | re.S):
-                fragment(match.group(2))
+                raise ValueError(f"Self-contained vector SVGs do not support CSS image resource functions: {svg.relative_to(repo)}")
+            position = 0
+            url_start = re.compile(r"url\(", re.I)
+            while match := url_start.search(value, position):
+                start = match.end()
+                while start < len(value) and value[start].isspace():
+                    start += 1
+                if start < len(value) and value[start] in {"'", '"'}:
+                    quote = value[start]
+                    quote_end = value.find(quote, start + 1)
+                    if quote_end == -1:
+                        raise ValueError(f"Unmatched SVG CSS URL quote: {svg.relative_to(repo)}")
+                    resource = value[start + 1:quote_end]
+                    end = quote_end + 1
+                    while end < len(value) and value[end].isspace():
+                        end += 1
+                    if end == len(value) or value[end] != ")":
+                        raise ValueError(f"Unclosed SVG CSS url() resource: {svg.relative_to(repo)}")
+                else:
+                    end = value.find(")", start)
+                    if end == -1:
+                        raise ValueError(f"Unclosed SVG CSS url() resource: {svg.relative_to(repo)}")
+                    resource = value[start:end].strip()
+                fragment(resource)
+                position = end + 1
+
 
         for node in root.iter():
             tag = node.tag.rsplit("}", 1)[-1]
             if tag == "foreignObject":
                 raise ValueError(f"Self-contained vector SVGs do not support foreignObject: {svg.relative_to(repo)}")
             if tag in {"script", "set", "animate", "animateMotion", "animateTransform", "discard"}:
-                raise ValueError(f"Static vector SVGs do not support dynamic markup: {svg.relative_to(repo)}: {tag}")
+                raise ValueError(f"Self-contained vector SVGs do not support dynamic markup: {svg.relative_to(repo)}: {tag}")
             for name, value in node.attrib.items():
                 if name == "{http://www.w3.org/XML/1998/namespace}base":
                     raise ValueError(f"Self-contained vector SVGs do not support xml:base: {svg.relative_to(repo)}")
