@@ -113,6 +113,8 @@ def main():
         raise ValueError("Profile must render at least one img element")
     assets = set()
     for reference in parser.references:
+        if re.search(r"%(?![0-9A-Fa-f]{2})", reference):
+            raise ValueError(f"Image URL contains a malformed percent escape: {reference}")
         if "\\" in reference or "\\" in unquote(reference, errors="strict"):
             raise ValueError(f"Backslashes are unsupported in image URLs: {reference}")
         url = urlsplit(reference)
